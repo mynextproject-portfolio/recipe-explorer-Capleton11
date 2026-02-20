@@ -20,6 +20,7 @@ from tests.conftest import MOCK_MEALDB_MEAL
 # Fixture: reset the module-level Redis singleton before/after each test
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def reset_cache_singleton():
     """Prevent state leaking between tests by resetting the lazy singleton."""
@@ -32,6 +33,7 @@ def reset_cache_singleton():
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_mock_redis(get_return=None, ping_ok=True):
     """Build an AsyncMock that behaves like a redis.asyncio.Redis client."""
@@ -63,6 +65,7 @@ def _make_httpx_mock(meals):
 # ---------------------------------------------------------------------------
 # 1. Unit tests: cache module
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_cache_get_returns_none_on_miss():
@@ -139,6 +142,7 @@ def test_cache_ttl_constant_is_24_hours():
 # ---------------------------------------------------------------------------
 # 2. Integration: search_meals cache behaviour
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_search_meals_returns_cached_results_without_http_call():
@@ -248,6 +252,7 @@ async def test_search_meals_cache_hit_returns_valid_recipe_objects():
 # ---------------------------------------------------------------------------
 # 3. API endpoint — cache effectiveness reflected in timing
 # ---------------------------------------------------------------------------
+
 
 def test_cache_hit_external_timing_faster_than_miss(client, clean_storage):
     """A cache hit (mocked instant return) records a shorter external

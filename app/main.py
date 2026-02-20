@@ -2,11 +2,9 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from app.routes import api, pages
-import os
 from app.services.storage import recipe_storage
 from app.services import cache
 
@@ -53,6 +51,7 @@ app.include_router(pages.router)
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
 
 # @app.get("/status")
 # def status():
