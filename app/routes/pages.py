@@ -4,19 +4,22 @@ from fastapi.templating import Jinja2Templates
 from typing import List, Optional
 from app.models import RecipeCreate, RecipeUpdate
 from app.services.storage import recipe_storage
+from app.services import mealdb
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)
-def home(request: Request, search: Optional[str] = None, message: Optional[str] = None):
+async def home(request: Request, search: Optional[str] = None, message: Optional[str] = None):
     """Home page with recipe list and search"""
     if search:
-        recipes = recipe_storage.search_recipes(search)
+        internal = recipe_storage.search_recipes(search)
+        external = await mealdb.search_meals(search)
+        recipes = internal + external
     else:
         recipes = recipe_storage.get_all_recipes()
-    
+
     return templates.TemplateResponse(request, "index.html", {
         "recipes": recipes,
         "search_query": search or "",

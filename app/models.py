@@ -55,6 +55,7 @@ class RecipeBase(BaseModel):
 
 class Recipe(RecipeBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    source: str = "internal"  # "internal" | "external"
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
