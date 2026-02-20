@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from app.routes import api, pages
 import os
 from app.services.storage import recipe_storage
+from app.services import cache
 
 # App configuration
 APP_NAME = "Recipe Explorer"
@@ -32,6 +33,9 @@ async def lifespan(app: FastAPI):
             print(f"Failed to seed sample data: {error}")
 
     yield
+
+    # Shutdown: close the Redis connection cleanly
+    await cache.close()
 
 
 # Create FastAPI app
