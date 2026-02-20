@@ -1,15 +1,19 @@
 """
-TheMealDB API adapter.
+TheMealDB API adapter with Redis caching.
 
 Fetches meals from https://www.themealdb.com/api/json/v1/1 and transforms
 them into the internal Recipe schema.  All public functions return empty
 results (not exceptions) when the external API is unavailable.
+
+Search results are cached in Redis for 24 hours to reduce latency on
+repeated queries.  Cache misses fall back to the live API transparently.
 """
 
 import httpx
 from typing import List, Optional
 
 from app.models import Recipe
+from app.services import cache
 
 MEALDB_BASE_URL = "https://www.themealdb.com/api/json/v1/1"
 _TIMEOUT = 5.0  # seconds
@@ -20,7 +24,23 @@ _TIMEOUT = 5.0  # seconds
 # ---------------------------------------------------------------------------
 
 async def search_meals(query: str) -> List[Recipe]:
-    """Search TheMealDB by name.  Returns [] on any network / parse error."""
+    """Search TheMealDB by name.
+
+    Checks Redis first (key ``mealdb:search:<query_lowercase>``).  On a
+    cache hit the deserialised recipes are returned immediately without
+    any HTTP call.  On a miss the live API is queried and the results are
+    stored in Redis before returning.
+
+    Returns [] on any network / parse error.
+    """
+    cache_key = f"mealdb:search:{query.lower()}"
+
+    # --- Cache hit -----------------------------------------------------------
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return [Recipe(**r) for r in cached]
+
+    # --- Cache miss: fetch from the live API ---------------------------------
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             response = await client.get(
@@ -29,14 +49,30 @@ async def search_meals(query: str) -> List[Recipe]:
             )
             response.raise_for_status()
             meals = response.json().get("meals") or []
-            return [_transform_meal(m) for m in meals]
+            results = [_transform_meal(m) for m in meals]
     except Exception:
         return []
+
+    # Store in cache (failures are silenced inside cache.set)
+    await cache.set(cache_key, [r.model_dump(mode="json") for r in results])
+
+    return results
 
 
 async def get_meal_by_id(meal_id: str) -> Optional[Recipe]:
     """Fetch a single meal from TheMealDB by its numeric ID.
-    Returns None on any network / parse error or when not found."""
+
+    Checks Redis first (key ``mealdb:meal:<meal_id>``).  Returns None on
+    any network / parse error or when the meal is not found.
+    """
+    cache_key = f"mealdb:meal:{meal_id}"
+
+    # --- Cache hit -----------------------------------------------------------
+    cached = await cache.get(cache_key)
+    if cached is not None:
+        return Recipe(**cached)
+
+    # --- Cache miss: fetch from the live API ---------------------------------
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             response = await client.get(
@@ -47,9 +83,13 @@ async def get_meal_by_id(meal_id: str) -> Optional[Recipe]:
             meals = response.json().get("meals") or []
             if not meals:
                 return None
-            return _transform_meal(meals[0])
+            result = _transform_meal(meals[0])
     except Exception:
         return None
+
+    await cache.set(cache_key, result.model_dump(mode="json"))
+
+    return result
 
 
 # ---------------------------------------------------------------------------

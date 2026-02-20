@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  # -------------------------------------------------------------------------
+  # FastAPI application
+  # -------------------------------------------------------------------------
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Use the Redis service name as the hostname inside the Docker network
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      # Make the sample data available inside the container
+      - ./sample-recipes.json:/app/sample-recipes.json:ro
+
+  # -------------------------------------------------------------------------
+  # Redis — used for caching external API (TheMealDB) responses
+  # -------------------------------------------------------------------------
+  redis:
+    image: redis:alpine
+    ports:
+      # Expose on localhost so you can inspect the cache with redis-cli
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
