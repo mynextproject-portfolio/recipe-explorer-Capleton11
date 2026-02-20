@@ -23,6 +23,7 @@ _TIMEOUT = 5.0  # seconds
 # Public interface
 # ---------------------------------------------------------------------------
 
+
 async def search_meals(query: str) -> List[Recipe]:
     """Search TheMealDB by name.
 
@@ -95,6 +96,7 @@ async def get_meal_by_id(meal_id: str) -> Optional[Recipe]:
 # ---------------------------------------------------------------------------
 # Data transformation
 # ---------------------------------------------------------------------------
+
 
 def _transform_meal(meal: dict) -> Recipe:
     """Convert a raw TheMealDB meal dict into our Recipe schema.
