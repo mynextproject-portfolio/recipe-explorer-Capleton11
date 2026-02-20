@@ -6,36 +6,97 @@ import json
 from app.models import Recipe, RecipeCreate, RecipeUpdate
 from app.services.storage import recipe_storage
 from app.services import mealdb
+from app.services.metrics import collector, Timer
 
 router = APIRouter(prefix="/api")
 
 
 # ---------------------------------------------------------------------------
-# Recipe list / search  (combined internal + external)
+# Metrics
+# ---------------------------------------------------------------------------
+
+@router.get("/metrics")
+def get_metrics():
+    """Return accumulated performance stats for internal vs external sources."""
+    return collector.get_stats()
+
+
+@router.post("/metrics/reset")
+def reset_metrics():
+    """Reset all accumulated metrics (useful for testing)."""
+    collector.reset()
+    return {"message": "Metrics reset"}
+
+
+# ---------------------------------------------------------------------------
+# Recipe list / search  (combined internal + external, with timing)
 # ---------------------------------------------------------------------------
 
 @router.get("/recipes")
 async def get_recipes(search: Optional[str] = None):
     """Get all recipes. When a search query is supplied, results from both
-    internal storage and TheMealDB are returned together."""
-    internal = (
-        recipe_storage.search_recipes(search)
-        if search
-        else recipe_storage.get_all_recipes()
-    )
+    internal storage and TheMealDB are returned together, with per-source
+    timing included in the response meta."""
+    with Timer("internal") as t_internal:
+        internal = (
+            recipe_storage.search_recipes(search)
+            if search
+            else recipe_storage.get_all_recipes()
+        )
 
-    external = await mealdb.search_meals(search) if search else []
+    external = []
+    t_external_ms = 0.0
+    if search:
+        with Timer("external") as t_ext:
+            external = await mealdb.search_meals(search)
+        t_external_ms = t_ext.duration_ms
 
-    return {"recipes": internal + external}
+    return {
+        "recipes": internal + external,
+        "meta": {
+            "internal": {
+                "count": len(internal),
+                "duration_ms": round(t_internal.duration_ms, 3),
+            },
+            "external": {
+                "count": len(external),
+                "duration_ms": round(t_external_ms, 3),
+            },
+            "total_duration_ms": round(t_internal.duration_ms + t_external_ms, 3),
+        },
+    }
 
 
 @router.get("/recipes/search")
 async def search_recipes(q: Optional[str] = None):
-    """Search recipes by keyword. Combines internal storage and TheMealDB results.
-    Uses ?q= query parameter."""
-    internal = recipe_storage.search_recipes(q) if q else recipe_storage.get_all_recipes()
-    external = await mealdb.search_meals(q) if q else []
-    return {"recipes": internal + external}
+    """Search recipes by keyword (?q=). Combines internal storage and TheMealDB.
+    Timing data is included in the response meta."""
+    with Timer("internal") as t_internal:
+        internal = (
+            recipe_storage.search_recipes(q) if q else recipe_storage.get_all_recipes()
+        )
+
+    external = []
+    t_external_ms = 0.0
+    if q:
+        with Timer("external") as t_ext:
+            external = await mealdb.search_meals(q)
+        t_external_ms = t_ext.duration_ms
+
+    return {
+        "recipes": internal + external,
+        "meta": {
+            "internal": {
+                "count": len(internal),
+                "duration_ms": round(t_internal.duration_ms, 3),
+            },
+            "external": {
+                "count": len(external),
+                "duration_ms": round(t_external_ms, 3),
+            },
+            "total_duration_ms": round(t_internal.duration_ms + t_external_ms, 3),
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +121,7 @@ def create_recipe(recipe: RecipeCreate):
 
 
 # ---------------------------------------------------------------------------
-# Dedicated internal / external endpoints (acceptance criteria)
+# Dedicated internal / external endpoints
 # ---------------------------------------------------------------------------
 
 @router.get("/recipes/internal/{recipe_id}")
