@@ -29,6 +29,15 @@ async def get_recipes(search: Optional[str] = None):
     return {"recipes": internal + external}
 
 
+@router.get("/recipes/search")
+async def search_recipes(q: Optional[str] = None):
+    """Search recipes by keyword. Combines internal storage and TheMealDB results.
+    Uses ?q= query parameter."""
+    internal = recipe_storage.search_recipes(q) if q else recipe_storage.get_all_recipes()
+    external = await mealdb.search_meals(q) if q else []
+    return {"recipes": internal + external}
+
+
 # ---------------------------------------------------------------------------
 # Export  — must be registered BEFORE /{recipe_id} to avoid shadowing
 # ---------------------------------------------------------------------------
