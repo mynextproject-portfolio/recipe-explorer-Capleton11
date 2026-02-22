@@ -4,8 +4,10 @@ Test fixtures for Recipe Explorer tests.
 
 import pytest
 from fastapi.testclient import TestClient
+
 from app.main import app
-from app.services.storage import recipe_storage
+from app.dependencies import get_storage
+from app.services.storage import RecipeStorage
 
 
 # Raw TheMealDB API response used by mealdb unit and mock tests
@@ -41,10 +43,16 @@ def client():
 
 @pytest.fixture
 def clean_storage():
-    """Reset storage before and after each test"""
-    recipe_storage.recipes.clear()
-    yield
-    recipe_storage.recipes.clear()
+    """Provide a fresh, empty RecipeStorage for the duration of the test.
+
+    Uses FastAPI's dependency override system so every route that declares
+    ``storage: RecipeStorage = Depends(get_storage)`` receives the isolated
+    instance — no global state is touched.
+    """
+    fresh = RecipeStorage()
+    app.dependency_overrides[get_storage] = lambda: fresh
+    yield fresh
+    app.dependency_overrides.pop(get_storage, None)
 
 
 @pytest.fixture
