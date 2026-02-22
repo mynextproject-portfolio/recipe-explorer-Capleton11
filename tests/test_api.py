@@ -7,7 +7,6 @@ Smoke and contract tests for Recipe Explorer API.
 # Smoke tests
 # ---------------------------------------------------------------------------
 
-
 def test_health_check(client):
     """Smoke test: API is running and responding"""
     response = client.get("/health")
@@ -26,7 +25,6 @@ def test_home_page_loads(client):
 # GET /api/recipes
 # ---------------------------------------------------------------------------
 
-
 def test_get_all_recipes(client, clean_storage):
     """Contract test: GET /api/recipes returns correct structure"""
     response = client.get("/api/recipes")
@@ -39,7 +37,6 @@ def test_get_all_recipes(client, clean_storage):
 # ---------------------------------------------------------------------------
 # POST /api/recipes — success path
 # ---------------------------------------------------------------------------
-
 
 def test_create_recipe_returns_201(client, clean_storage, sample_recipe_data):
     """Contract test: creating a recipe returns 201 Created"""
@@ -65,7 +62,6 @@ def test_create_recipe_response_shape(client, clean_storage, sample_recipe_data)
 # POST /api/recipes — validation errors (expect 422)
 # ---------------------------------------------------------------------------
 
-
 def test_create_recipe_missing_title(client, clean_storage, sample_recipe_data):
     """Validation: missing title field returns 422"""
     data = {k: v for k, v in sample_recipe_data.items() if k != "title"}
@@ -87,9 +83,7 @@ def test_create_recipe_title_too_long(client, clean_storage, sample_recipe_data)
     assert response.status_code == 422
 
 
-def test_create_recipe_empty_ingredients_list(
-    client, clean_storage, sample_recipe_data
-):
+def test_create_recipe_empty_ingredients_list(client, clean_storage, sample_recipe_data):
     """Validation: empty ingredients list returns 422"""
     data = {**sample_recipe_data, "ingredients": []}
     response = client.post("/api/recipes", json=data)
@@ -103,9 +97,7 @@ def test_create_recipe_too_many_ingredients(client, clean_storage, sample_recipe
     assert response.status_code == 422
 
 
-def test_create_recipe_empty_instructions_list(
-    client, clean_storage, sample_recipe_data
-):
+def test_create_recipe_empty_instructions_list(client, clean_storage, sample_recipe_data):
     """Validation: empty instructions list returns 422"""
     data = {**sample_recipe_data, "instructions": []}
     response = client.post("/api/recipes", json=data)
@@ -130,7 +122,6 @@ def test_create_recipe_missing_cuisine(client, clean_storage, sample_recipe_data
 # GET /api/recipes/{id}
 # ---------------------------------------------------------------------------
 
-
 def test_get_recipe_success(client, clean_storage, sample_recipe_data):
     """Contract test: fetching an existing recipe returns 200"""
     create_response = client.post("/api/recipes", json=sample_recipe_data)
@@ -150,7 +141,6 @@ def test_get_recipe_not_found(client, clean_storage):
 # ---------------------------------------------------------------------------
 # PUT /api/recipes/{id}
 # ---------------------------------------------------------------------------
-
 
 def test_update_recipe_success(client, clean_storage, sample_recipe_data):
     """Contract test: updating an existing recipe returns 200 with new data"""
@@ -173,7 +163,6 @@ def test_update_recipe_not_found(client, clean_storage, sample_recipe_data):
 # ---------------------------------------------------------------------------
 # DELETE /api/recipes/{id}
 # ---------------------------------------------------------------------------
-
 
 def test_delete_recipe_success(client, clean_storage, sample_recipe_data):
     """Contract test: deleting an existing recipe returns 200"""
@@ -205,7 +194,6 @@ def test_delete_recipe_actually_removes_it(client, clean_storage, sample_recipe_
 # ---------------------------------------------------------------------------
 # HTML pages smoke tests
 # ---------------------------------------------------------------------------
-
 
 def test_recipe_pages_load(client, clean_storage, sample_recipe_data):
     """Smoke test: recipe HTML pages load without error"""

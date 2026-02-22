@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from typing import Optional
 import json
 
-from app.models import RecipeCreate, RecipeUpdate
+from app.models import Recipe, RecipeCreate, RecipeUpdate
 from app.services.storage import recipe_storage
 from app.services import mealdb
 from app.services.metrics import collector, Timer
@@ -14,7 +14,6 @@ router = APIRouter(prefix="/api")
 # ---------------------------------------------------------------------------
 # Metrics
 # ---------------------------------------------------------------------------
-
 
 @router.get("/metrics")
 def get_metrics():
@@ -32,7 +31,6 @@ def reset_metrics():
 # ---------------------------------------------------------------------------
 # Recipe list / search  (combined internal + external, with timing)
 # ---------------------------------------------------------------------------
-
 
 @router.get("/recipes")
 async def get_recipes(search: Optional[str] = None):
@@ -105,7 +103,6 @@ async def search_recipes(q: Optional[str] = None):
 # Export  — must be registered BEFORE /{recipe_id} to avoid shadowing
 # ---------------------------------------------------------------------------
 
-
 @router.get("/recipes/export")
 def export_recipes():
     """Export all internal recipes as JSON."""
@@ -117,7 +114,6 @@ def export_recipes():
 # Create
 # ---------------------------------------------------------------------------
 
-
 @router.post("/recipes", status_code=201)
 def create_recipe(recipe: RecipeCreate):
     """Create a new internal recipe."""
@@ -127,7 +123,6 @@ def create_recipe(recipe: RecipeCreate):
 # ---------------------------------------------------------------------------
 # Dedicated internal / external endpoints
 # ---------------------------------------------------------------------------
-
 
 @router.get("/recipes/internal/{recipe_id}")
 def get_internal_recipe(recipe_id: str):
@@ -150,7 +145,6 @@ async def get_external_recipe(recipe_id: str):
 # ---------------------------------------------------------------------------
 # Single internal recipe (generic, backward-compatible)
 # ---------------------------------------------------------------------------
-
 
 @router.get("/recipes/{recipe_id}")
 def get_recipe(recipe_id: str):
@@ -181,7 +175,6 @@ def delete_recipe(recipe_id: str):
 # ---------------------------------------------------------------------------
 # Import
 # ---------------------------------------------------------------------------
-
 
 @router.post("/recipes/import")
 async def import_recipes(file: UploadFile = File(...)):

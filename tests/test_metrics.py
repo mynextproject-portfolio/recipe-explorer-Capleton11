@@ -21,7 +21,6 @@ from tests.conftest import MOCK_MEALDB_MEAL
 # Fixture: reset the global collector before each test in this file
 # ---------------------------------------------------------------------------
 
-
 @pytest.fixture(autouse=True)
 def reset_global_collector():
     collector.reset()
@@ -32,7 +31,6 @@ def reset_global_collector():
 # ---------------------------------------------------------------------------
 # 1. Unit tests: Timer and MetricsCollector
 # ---------------------------------------------------------------------------
-
 
 def test_timer_measures_positive_duration():
     with Timer("test") as t:
@@ -108,7 +106,6 @@ def test_collector_tracks_multiple_sources():
 # ---------------------------------------------------------------------------
 # 2. API tests: meta field in search responses
 # ---------------------------------------------------------------------------
-
 
 def test_get_recipes_response_includes_meta(client, clean_storage):
     response = client.get("/api/recipes")
@@ -200,7 +197,6 @@ def test_search_endpoint_also_has_meta(client, clean_storage):
 # 3. /api/metrics endpoint
 # ---------------------------------------------------------------------------
 
-
 def test_metrics_endpoint_returns_200(client):
     response = client.get("/api/metrics")
     assert response.status_code == 200
@@ -227,13 +223,8 @@ def test_metrics_endpoint_records_after_search(client, clean_storage):
 def test_metrics_internal_structure(client, clean_storage):
     client.get("/api/recipes")  # triggers internal timing
     stats = client.get("/api/metrics").json()["internal"]
-    for key in (
-        "total_calls",
-        "total_duration_ms",
-        "avg_duration_ms",
-        "min_duration_ms",
-        "max_duration_ms",
-    ):
+    for key in ("total_calls", "total_duration_ms", "avg_duration_ms",
+                "min_duration_ms", "max_duration_ms"):
         assert key in stats, f"Missing key: {key}"
 
 
@@ -260,7 +251,6 @@ def test_metrics_avg_duration_is_non_negative(client, clean_storage):
 # ---------------------------------------------------------------------------
 # 4. Integration: real internal vs real external timing comparison
 # ---------------------------------------------------------------------------
-
 
 def test_internal_faster_than_external_in_real_search(client, clean_storage):
     """Integration: real TheMealDB call should be measurably slower than

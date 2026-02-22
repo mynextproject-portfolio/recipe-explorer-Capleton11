@@ -33,7 +33,6 @@ _client: Optional[aioredis.Redis] = None
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-
 async def get_client() -> Optional[aioredis.Redis]:
     """Return a shared Redis client, connecting lazily on first call.
 
@@ -53,7 +52,6 @@ async def get_client() -> Optional[aioredis.Redis]:
 # ---------------------------------------------------------------------------
 # Public interface
 # ---------------------------------------------------------------------------
-
 
 async def get(key: str) -> Optional[Any]:
     """Retrieve a JSON-deserialized value from the cache.

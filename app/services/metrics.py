@@ -22,7 +22,6 @@ from typing import Dict, Optional
 # Per-source stats
 # ---------------------------------------------------------------------------
 
-
 @dataclass
 class SourceStats:
     total_calls: int = 0
@@ -64,7 +63,6 @@ class SourceStats:
 # Collector (singleton)
 # ---------------------------------------------------------------------------
 
-
 class MetricsCollector:
     def __init__(self) -> None:
         self._data: Dict[str, SourceStats] = {}
@@ -88,7 +86,6 @@ collector = MetricsCollector()
 # ---------------------------------------------------------------------------
 # Timer context manager
 # ---------------------------------------------------------------------------
-
 
 class Timer:
     """Sync context manager that measures elapsed wall-clock time and records

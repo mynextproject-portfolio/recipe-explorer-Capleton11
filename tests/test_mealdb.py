@@ -18,7 +18,6 @@ from app.models import Recipe
 # 1. Unit tests: data transformation
 # ---------------------------------------------------------------------------
 
-
 def test_transform_meal_source_is_external():
     recipe = _transform_meal(MOCK_MEALDB_MEAL)
     assert recipe.source == "external"
@@ -99,14 +98,11 @@ def test_transform_result_is_valid_recipe_instance():
 # 2. Mock tests: API endpoints
 # ---------------------------------------------------------------------------
 
-
 def _make_external_recipe() -> Recipe:
     return _transform_meal(MOCK_MEALDB_MEAL)
 
 
-def test_search_with_query_returns_both_sources(
-    client, clean_storage, sample_recipe_data
-):
+def test_search_with_query_returns_both_sources(client, clean_storage, sample_recipe_data):
     """GET /api/recipes?search=... should merge internal + external results."""
     client.post("/api/recipes", json=sample_recipe_data)
 
@@ -136,9 +132,7 @@ def test_search_without_query_does_not_call_external_api(client, clean_storage):
     mock_search.assert_not_called()
 
 
-def test_search_all_recipes_have_source_field(
-    client, clean_storage, sample_recipe_data
-):
+def test_search_all_recipes_have_source_field(client, clean_storage, sample_recipe_data):
     """Every recipe in a search response must carry a source field."""
     client.post("/api/recipes", json=sample_recipe_data)
 
@@ -153,9 +147,7 @@ def test_search_all_recipes_have_source_field(
     assert all("source" in r for r in recipes)
 
 
-def test_internal_recipes_have_source_internal(
-    client, clean_storage, sample_recipe_data
-):
+def test_internal_recipes_have_source_internal(client, clean_storage, sample_recipe_data):
     """Internal recipes must have source == 'internal'."""
     client.post("/api/recipes", json=sample_recipe_data)
     response = client.get("/api/recipes")
@@ -163,9 +155,7 @@ def test_internal_recipes_have_source_internal(
     assert all(r["source"] == "internal" for r in recipes)
 
 
-def test_external_api_failure_still_returns_internal(
-    client, clean_storage, sample_recipe_data
-):
+def test_external_api_failure_still_returns_internal(client, clean_storage, sample_recipe_data):
     """When TheMealDB is down the endpoint should still return internal recipes."""
     client.post("/api/recipes", json=sample_recipe_data)
 
@@ -238,23 +228,14 @@ def test_external_recipe_has_all_required_fields(client):
         response = client.get("/api/recipes/external/52772")
 
     data = response.json()
-    for field in (
-        "id",
-        "title",
-        "description",
-        "ingredients",
-        "instructions",
-        "cuisine",
-        "tags",
-        "source",
-    ):
+    for field in ("id", "title", "description", "ingredients", "instructions",
+                  "cuisine", "tags", "source"):
         assert field in data, f"Missing field: {field}"
 
 
 # ---------------------------------------------------------------------------
 # 3. Integration test — hits the real TheMealDB API
 # ---------------------------------------------------------------------------
-
 
 def test_mealdb_real_api_search(client, clean_storage):
     """Integration: real network call to TheMealDB through /api/recipes search.
