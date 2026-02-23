@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.dependencies import get_storage
 from app.routes import api, pages
@@ -56,3 +57,8 @@ app.include_router(pages.router)
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+# Prometheus — exposes /metrics in Prometheus text format
+# Must come AFTER routers are registered so all routes are instrumented
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")

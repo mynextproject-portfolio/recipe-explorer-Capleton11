@@ -9,11 +9,19 @@ Search results are cached in Redis for 24 hours to reduce latency on
 repeated queries.  Cache misses fall back to the live API transparently.
 """
 
+import time
+
 import httpx
 from typing import List, Optional
 
 from app.models import Recipe
 from app.services import cache
+from app.services.prometheus_metrics import (
+    CACHE_HITS,
+    CACHE_MISSES,
+    MEALDB_DURATION,
+    MEALDB_REQUESTS,
+)
 
 MEALDB_BASE_URL = "https://www.themealdb.com/api/json/v1/1"
 _TIMEOUT = 5.0  # seconds
@@ -39,9 +47,12 @@ async def search_meals(query: str) -> List[Recipe]:
     # --- Cache hit -----------------------------------------------------------
     cached = await cache.get(cache_key)
     if cached is not None:
+        CACHE_HITS.labels(operation="search").inc()
         return [Recipe(**r) for r in cached]
 
     # --- Cache miss: fetch from the live API ---------------------------------
+    CACHE_MISSES.labels(operation="search").inc()
+    _start = time.perf_counter()
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             response = await client.get(
@@ -51,7 +62,11 @@ async def search_meals(query: str) -> List[Recipe]:
             response.raise_for_status()
             meals = response.json().get("meals") or []
             results = [_transform_meal(m) for m in meals]
+        MEALDB_DURATION.labels(operation="search").observe(time.perf_counter() - _start)
+        MEALDB_REQUESTS.labels(operation="search", status="success").inc()
     except Exception:
+        MEALDB_DURATION.labels(operation="search").observe(time.perf_counter() - _start)
+        MEALDB_REQUESTS.labels(operation="search", status="error").inc()
         return []
 
     # Store in cache (failures are silenced inside cache.set)
@@ -71,9 +86,12 @@ async def get_meal_by_id(meal_id: str) -> Optional[Recipe]:
     # --- Cache hit -----------------------------------------------------------
     cached = await cache.get(cache_key)
     if cached is not None:
+        CACHE_HITS.labels(operation="meal_lookup").inc()
         return Recipe(**cached)
 
     # --- Cache miss: fetch from the live API ---------------------------------
+    CACHE_MISSES.labels(operation="meal_lookup").inc()
+    _start = time.perf_counter()
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             response = await client.get(
@@ -83,9 +101,21 @@ async def get_meal_by_id(meal_id: str) -> Optional[Recipe]:
             response.raise_for_status()
             meals = response.json().get("meals") or []
             if not meals:
+                MEALDB_DURATION.labels(operation="meal_lookup").observe(
+                    time.perf_counter() - _start
+                )
+                MEALDB_REQUESTS.labels(operation="meal_lookup", status="success").inc()
                 return None
             result = _transform_meal(meals[0])
+        MEALDB_DURATION.labels(operation="meal_lookup").observe(
+            time.perf_counter() - _start
+        )
+        MEALDB_REQUESTS.labels(operation="meal_lookup", status="success").inc()
     except Exception:
+        MEALDB_DURATION.labels(operation="meal_lookup").observe(
+            time.perf_counter() - _start
+        )
+        MEALDB_REQUESTS.labels(operation="meal_lookup", status="error").inc()
         return None
 
     await cache.set(cache_key, result.model_dump(mode="json"))
