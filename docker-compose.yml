@@ -31,3 +31,21 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  # -------------------------------------------------------------------------
+  # Prometheus — scrapes /metrics from the app every 15s
+  # UI available at http://localhost:9090
+  # -------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    depends_on:
+      - app

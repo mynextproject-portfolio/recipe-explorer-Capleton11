@@ -8,6 +8,7 @@ from app.dependencies import get_mealdb, get_metrics, get_storage
 from app.models import RecipeCreate, RecipeUpdate
 from app.services.mealdb import MealDBService
 from app.services.metrics import MetricsCollector, Timer
+from app.services.prometheus_metrics import RECIPE_SEARCHES
 from app.services.storage import RecipeStorage
 
 router = APIRouter(prefix="/api")
@@ -54,6 +55,7 @@ async def get_recipes(
     external = []
     t_external_ms = 0.0
     if search:
+        RECIPE_SEARCHES.labels(query=search.lower()).inc()
         with Timer("external", metrics) as t_ext:
             external = await mealdb_svc.search_meals(search)
         t_external_ms = t_ext.duration_ms
@@ -89,6 +91,7 @@ async def search_recipes(
     external = []
     t_external_ms = 0.0
     if q:
+        RECIPE_SEARCHES.labels(query=q.lower()).inc()
         with Timer("external", metrics) as t_ext:
             external = await mealdb_svc.search_meals(q)
         t_external_ms = t_ext.duration_ms
