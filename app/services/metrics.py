@@ -92,19 +92,30 @@ collector = MetricsCollector()
 
 class Timer:
     """Sync context manager that measures elapsed wall-clock time and records
-    it against the named source in the global collector.
+    it against the named source in a ``MetricsCollector``.
 
-    Example::
+    When *metrics* is ``None`` (the default) the global ``collector``
+    singleton is used, keeping backward compatibility with any code that
+    creates a ``Timer`` without going through dependency injection.
+
+    Example — direct use (uses global collector)::
 
         with Timer("internal") as t:
             results = storage.search(query)
-        # t.duration_ms is now populated
+
+    Example — injected collector (used by route handlers)::
+
+        with Timer("internal", metrics) as t:
+            results = storage.search(query)
     """
 
-    def __init__(self, source: str) -> None:
+    def __init__(
+        self, source: str, metrics: Optional["MetricsCollector"] = None
+    ) -> None:
         self.source = source
         self.duration_ms: float = 0.0
         self._start: float = 0.0
+        self._metrics = metrics if metrics is not None else collector
 
     def __enter__(self) -> "Timer":
         self._start = time.perf_counter()
@@ -112,4 +123,4 @@ class Timer:
 
     def __exit__(self, *_) -> None:
         self.duration_ms = (time.perf_counter() - self._start) * 1000
-        collector.record(self.source, self.duration_ms)
+        self._metrics.record(self.source, self.duration_ms)

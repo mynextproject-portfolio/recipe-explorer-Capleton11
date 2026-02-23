@@ -152,3 +152,32 @@ def _transform_meal(meal: dict) -> Recipe:
         tags=tags,
         source="external",
     )
+
+
+# ---------------------------------------------------------------------------
+# Service class — used for dependency injection via FastAPI's Depends()
+# ---------------------------------------------------------------------------
+
+
+class MealDBService:
+    """Thin wrapper around the module-level mealdb functions.
+
+    Exists so that route handlers can declare a typed dependency that
+    FastAPI (and tests, via ``app.dependency_overrides``) can swap out::
+
+        mealdb_svc: MealDBService = Depends(get_mealdb)
+
+    The methods delegate straight to the module-level async functions, so
+    existing ``patch("app.services.mealdb.search_meals", ...)`` calls in
+    tests continue to work without any changes.
+    """
+
+    async def search_meals(self, query: str) -> List[Recipe]:
+        return await search_meals(query)
+
+    async def get_meal_by_id(self, meal_id: str) -> Optional[Recipe]:
+        return await get_meal_by_id(meal_id)
+
+
+# Shared singleton returned by get_mealdb() in dependencies.py
+_mealdb_service = MealDBService()
