@@ -8,7 +8,7 @@ handlers::
     from app.dependencies import get_storage, get_metrics, get_mealdb
 
     @router.get("/recipes")
-    def list_recipes(storage: RecipeStorage = Depends(get_storage)):
+    def list_recipes(storage = Depends(get_storage)):
         return storage.get_all_recipes()
 
 Swapping a dependency for tests is done via ``app.dependency_overrides``::
@@ -20,14 +20,30 @@ Swapping a dependency for tests is done via ``app.dependency_overrides``::
     app.dependency_overrides[get_storage] = lambda: RecipeStorage()
 """
 
+import os
+
 from app.services.mealdb import MealDBService, _mealdb_service
 from app.services.metrics import MetricsCollector, collector
-from app.services.storage import RecipeStorage, recipe_storage
+from app.services.sqlite_storage import SQLiteRecipeStorage
+
+# ---------------------------------------------------------------------------
+# Shared singletons
+# ---------------------------------------------------------------------------
+
+# SQLite database – path is configurable via DB_PATH env var so Docker,
+# local dev, and tests can each point at a different file (or override the
+# dependency entirely for in-memory testing).
+_db_storage = SQLiteRecipeStorage(db_path=os.getenv("DB_PATH", "recipes.db"))
 
 
-def get_storage() -> RecipeStorage:
-    """Provide the shared recipe storage instance."""
-    return recipe_storage
+# ---------------------------------------------------------------------------
+# Providers
+# ---------------------------------------------------------------------------
+
+
+def get_storage() -> SQLiteRecipeStorage:
+    """Provide the shared SQLite-backed recipe storage instance."""
+    return _db_storage
 
 
 def get_metrics() -> MetricsCollector:

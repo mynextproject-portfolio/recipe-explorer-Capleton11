@@ -4,8 +4,9 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+
+from app.dependencies import get_storage
 from app.routes import api, pages
-from app.services.storage import recipe_storage
 from app.services import cache
 
 # App configuration
@@ -18,14 +19,18 @@ SAMPLE_DATA_PATH = Path(__file__).parent.parent / "sample-recipes.json"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load sample recipes during application startup."""
+    """Seed sample recipes on first run; skip if data already exists."""
+    storage = get_storage()
+
     if not SAMPLE_DATA_PATH.exists():
         print(f"No sample data file found at {SAMPLE_DATA_PATH}")
+    elif storage.get_all_recipes():
+        print("Database already contains recipes, skipping seed")
     else:
         try:
             with open(SAMPLE_DATA_PATH, "r", encoding="utf-8") as sample_file:
                 recipes_data = json.load(sample_file)
-            count = recipe_storage.import_recipes(recipes_data)
+            count = storage.import_recipes(recipes_data)
             print(f"Seeded {count} recipes from {SAMPLE_DATA_PATH.name}")
         except Exception as error:
             print(f"Failed to seed sample data: {error}")
@@ -51,8 +56,3 @@ app.include_router(pages.router)
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
-
-
-# @app.get("/status")
-# def status():
-#     return {"status": "ok", "version": "1.0.0"}
