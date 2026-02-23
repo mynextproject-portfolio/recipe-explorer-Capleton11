@@ -181,6 +181,7 @@ def _transform_meal(meal: dict) -> Recipe:
         cuisine=cuisine,
         tags=tags,
         source="external",
+        thumbnail_url=(meal.get("strMealThumb") or "").strip() or None,
     )
 
 

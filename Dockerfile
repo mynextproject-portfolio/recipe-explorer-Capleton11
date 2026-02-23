@@ -1,17 +1,20 @@
-FROM python:3.12-slim
+# Stage 1: Build React frontend
+FROM node:20-alpine AS frontend-builder
+WORKDIR /frontend-build
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci --silent
+COPY frontend/ ./
+RUN npm run build
 
-# Set working directory
+# Stage 2: Python / FastAPI
+FROM python:3.12-slim
 WORKDIR /app
 
-# Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
 COPY . .
+COPY --from=frontend-builder /frontend-build/dist ./frontend/dist
 
-# Expose port
 EXPOSE 8000
-
-# Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
