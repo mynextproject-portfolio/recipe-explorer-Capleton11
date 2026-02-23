@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 import uuid
 
 # Constants
@@ -56,6 +56,7 @@ class RecipeBase(BaseModel):
 class Recipe(RecipeBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     source: str = "internal"  # "internal" | "external"
+    thumbnail_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 

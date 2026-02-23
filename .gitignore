@@ -8,8 +8,11 @@ env/
 venv/
 .venv/
 *.egg-info/
-dist/
 build/
+
+# Node
+node_modules/
+frontend/node_modules/
 
 # Testing
 .pytest_cache/

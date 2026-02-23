@@ -119,9 +119,12 @@ async def search_recipes(
 
 @router.get("/recipes/export")
 def export_recipes(storage: RecipeStorage = Depends(get_storage)):
-    """Export all internal recipes as JSON."""
+    """Export all internal recipes as a downloadable JSON file."""
     recipes = storage.get_all_recipes()
-    return JSONResponse(content=[r.model_dump() for r in recipes])
+    return JSONResponse(
+        content=[r.model_dump() for r in recipes],
+        headers={"Content-Disposition": 'attachment; filename="recipes.json"'},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -173,11 +176,20 @@ async def get_external_recipe(
 
 
 @router.get("/recipes/{recipe_id}")
-def get_recipe(
+async def get_recipe(
     recipe_id: str,
     storage: RecipeStorage = Depends(get_storage),
+    mealdb_svc: MealDBService = Depends(get_mealdb),
 ):
-    """Get a specific internal recipe by ID."""
+    """Get a recipe by ID — handles both internal recipes and external MealDB
+    recipes (whose IDs are prefixed with ``mealdb-``)."""
+    if recipe_id.startswith("mealdb-"):
+        meal_id = recipe_id[len("mealdb-"):]
+        recipe = await mealdb_svc.get_meal_by_id(meal_id)
+        if not recipe:
+            raise HTTPException(status_code=404, detail="Recipe not found")
+        return recipe
+
     recipe = storage.get_recipe(recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")

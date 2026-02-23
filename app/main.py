@@ -3,11 +3,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.dependencies import get_storage
-from app.routes import api, pages
+from app.routes import api
 from app.services import cache
 
 # App configuration
@@ -16,6 +18,7 @@ VERSION = "1.0.0"
 DEBUG = True
 
 SAMPLE_DATA_PATH = Path(__file__).parent.parent / "sample-recipes.json"
+FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
 
 
 @asynccontextmanager
@@ -45,12 +48,17 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(title=APP_NAME, version=VERSION, lifespan=lifespan)
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# CORS — allow Vite dev server
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Include routers
+# Include API router
 app.include_router(api.router)
-app.include_router(pages.router)
 
 
 # Basic health check
@@ -62,3 +70,15 @@ def health_check():
 # Prometheus — exposes /metrics in Prometheus text format
 # Must come AFTER routers are registered so all routes are instrumented
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+# SPA catch-all — serve React app for all non-API routes
+if FRONTEND_DIST.exists():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=str(FRONTEND_DIST / "assets")),
+        name="assets",
+    )
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def spa_fallback(full_path: str):
+        return FileResponse(str(FRONTEND_DIST / "index.html"))
