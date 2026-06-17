@@ -8,6 +8,11 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 
+# Load compatibility patches (monkeypatches) early so instrumentator routing
+# works with different Starlette/FastAPI internal route types without
+# modifying site-packages.
+import app.compat  # noqa: F401
+
 from app.dependencies import get_storage
 from app.routes import api
 from app.services import cache
